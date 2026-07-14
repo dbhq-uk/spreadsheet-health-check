@@ -1,6 +1,6 @@
 {
   "name": "@dbhq/spreadsheet-health-check",
-  "version": "0.0.0",
+  "version": "0.3.0",
   "description": "Free, client-side spreadsheet risk scanner. Scores a workbook for business risk - key-person dependency, hidden fragility, live errors, scale limits. No upload.",
   "license": "MIT",
   "type": "module",
