@@ -6,21 +6,27 @@
 // and inside cell references (A1). Every helper here walks the formula with the string
 // literals and identifiers skipped, so none of those can masquerade as a number.
 
-/** Replace every quoted string literal with an empty one, preserving "" escapes. */
+/**
+ * Replace every quoted run with an empty one, preserving doubled-character escapes.
+ * That covers both "string literals" and 'quoted sheet names' ('Q1 Data'!A1) - a sheet
+ * name can carry digits, spaces and even parentheses, none of which may leak into the
+ * helpers below as numbers, refs or brackets.
+ */
 export function stripStrings(f: string): string {
   let out = "";
   let i = 0;
   while (i < f.length) {
-    if (f[i] === '"') {
+    const q = f[i];
+    if (q === '"' || q === "'") {
       let j = i + 1;
       while (j < f.length) {
-        if (f[j] === '"') {
-          if (f[j + 1] === '"') { j += 2; continue; }
+        if (f[j] === q) {
+          if (f[j + 1] === q) { j += 2; continue; }
           break;
         }
         j++;
       }
-      out += '""';
+      out += q + q;
       i = j + 1;
       continue;
     }
