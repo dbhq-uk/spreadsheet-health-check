@@ -1,4 +1,10 @@
 name: release
+
+# Actions are pinned to commit SHAs, not tags. This job holds contents/id-token/attestations
+# write, so a hijacked tag on any action here could sign malicious artefacts with our own
+# provenance - which is precisely the thing this repo exists to make trustworthy. The repo
+# enforces SHA pinning, so an unpinned `uses:` will fail the run rather than quietly weaken it.
+
 on:
   push:
     tags: ["v*"]
@@ -10,8 +16,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with: { node-version: "22", cache: "npm" }
       - run: npm ci
       - run: npm test
@@ -24,13 +30,13 @@ jobs:
           cd dist
           sha256sum spreadsheet-health-check.worker.js spreadsheet-health-check.global.js | tee ../SHA256SUMS
       # The worker bundle is the one the website loads, so it is the one that must be attested.
-      - uses: actions/attest-build-provenance@v1
+      - uses: actions/attest-build-provenance@ef244123eb79f2f7a7e75d99086184180e6d0018 # v1
         with:
           subject-path: |
             dist/spreadsheet-health-check.worker.js
             dist/spreadsheet-health-check.global.js
       - name: Publish release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: |
             dist/spreadsheet-health-check.worker.js
