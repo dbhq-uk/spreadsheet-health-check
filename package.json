@@ -10,6 +10,8 @@
   "files": [
     "dist",
     "src",
+    "browser",
+    "examples",
     "LICENSE",
     "README.md"
   ],
@@ -17,9 +19,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "fixtures": "node --experimental-strip-types test/fixtures/generate.mts",
+    "scores": "vitest run test/calibration.test.ts",
     "build": "tsup",
     "demo": "node --experimental-strip-types demo/cli.mts",
-    "check:iife": "node scripts/check-iife-bundle.mjs"
+    "check:iife": "node scripts/check-iife-bundle.mjs",
+    "check:worker": "node scripts/check-worker-bundle.mjs",
+    "example": "node --experimental-strip-types examples/generate-example.mts"
   },
   "dependencies": {
     "fflate": "0.8.3",

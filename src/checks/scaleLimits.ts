@@ -18,6 +18,7 @@ export const scaleLimits: Check = (ctx) => {
     severity,
     title: "This workbook is near the limits of what a spreadsheet can hold",
     soWhat: "Past these limits Excel drops data or grinds to a halt - the failure mode behind real incidents where records simply vanished.",
+    action: "Move the data into something built to hold it - a database with the spreadsheet reading from it - before the limit is reached rather than after.",
     locations: reasons,
     count: reasons.length,
   };
