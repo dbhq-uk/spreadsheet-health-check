@@ -102,15 +102,15 @@ export function parseWorkbook(bytes: Uint8Array): ParsedContext {
       const r = XLSX.utils.decode_range(ref);
       rowCount = r.e.r + 1;
       colCount = r.e.c + 1;
-      for (let row = r.s.r; row <= r.e.r; row++) {
-        for (let col = r.s.c; col <= r.e.c; col++) {
-          const addr = XLSX.utils.encode_cell({ r: row, c: col });
-          const cell = ws[addr] as XLSX.CellObject | undefined;
-          if (!cell) continue;
-          if (cell.f) formulaCells.push({ sheet: name, addr, f: cell.f });
-          if (cell.c?.length) hasComments = true;
-        }
-      }
+    }
+    // Walk the cells that exist, not the full rectangle. A sparse sheet near the million-row
+    // ceiling - exactly the workbook scaleLimits exists for - would otherwise cost
+    // rows x cols address encodings before the first check ever ran.
+    for (const addr in ws) {
+      if (addr[0] === "!") continue;
+      const cell = ws[addr] as XLSX.CellObject;
+      if (cell.f) formulaCells.push({ sheet: name, addr, f: cell.f });
+      if (cell.c?.length) hasComments = true;
     }
     const hidden = wbSheets[i]?.Hidden ?? 0;
     return {

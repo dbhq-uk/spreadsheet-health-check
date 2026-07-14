@@ -1,0 +1,58 @@
+name: ci
+
+# Runs on every PR and every push to main. release.yml only fires on a v* tag, so before this
+# workflow existed nothing tested a change until the moment it was being released - the worst
+# possible time to find out. This is the gate; release.yml re-runs the same checks on the way out.
+#
+# Actions are pinned to commit SHAs, not tags - same rule as release.yml, for the same reason.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: { node-version: "22", cache: "npm" }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+      # The bundles are what ships, so exercise the built artefacts, not just the source:
+      # the engine can be green while the bundle that reaches the browser is broken.
+      - run: npm run build
+      - run: npm run check:worker
+      - run: npm run check:iife
+
+      # The fixture generator pins its zip mtime specifically so regeneration is a no-op in
+      # git. If it is not, the committed fixtures no longer match the code that claims to
+      # produce them, and every test asserting against them is testing a stale artefact.
+      # --porcelain rather than `git diff`, so a fixture the generator emits but nobody
+      # committed is caught too - `git diff` cannot see an untracked file.
+      - name: Committed fixtures match their generator
+        run: |
+          npm run fixtures
+          npm run example
+          if [ -n "$(git status --porcelain -- test/fixtures examples)" ]; then
+            echo "::error::Fixtures do not match their generator. Run 'npm run fixtures && npm run example' and commit the result."
+            git status --porcelain -- test/fixtures examples
+            exit 1
+          fi
+
+  # A workbook parser exists to eat untrusted files. Keeping a known-vulnerable SheetJS out of
+  # the bundle is the whole ballgame, so a high-severity advisory fails the build.
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: { node-version: "22", cache: "npm" }
+      - run: npm ci
+      - run: npm audit --audit-level=high

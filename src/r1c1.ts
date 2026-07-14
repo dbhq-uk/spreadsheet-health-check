@@ -10,12 +10,13 @@ export function relativeTemplate(formula: string, originRef: string): string {
   let i = 0;
   while (i < formula.length) {
     const ch = formula[i];
-    if (ch === '"') {
-      // copy the quoted string literal verbatim (handles "" escaped quotes)
+    if (ch === '"' || ch === "'") {
+      // copy the quoted run verbatim, preserving doubled-character escapes: "string
+      // literals" and 'quoted sheet names' alike ('Q1 Data'!A1 - the Q1 is text, not a ref)
       let j = i + 1;
       while (j < formula.length) {
-        if (formula[j] === '"') {
-          if (formula[j + 1] === '"') { j += 2; continue; }
+        if (formula[j] === ch) {
+          if (formula[j + 1] === ch) { j += 2; continue; }
           break;
         }
         j++;

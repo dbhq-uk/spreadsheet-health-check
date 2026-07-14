@@ -15,6 +15,13 @@ describe("inconsistentFormulas", () => {
   it("does not fire when all formulas are consistent", () => {
     expect(inconsistentFormulas(ctx("clean.xlsx"))).toBeNull();
   });
+  it("does not flag an aggregate totals row at the foot of a column, but still flags a real trailing outlier", () => {
+    const f = inconsistentFormulas(ctx("totals-row.xlsx"));
+    // B6 is =SUM(B2:B5) under a column of =A*2 - a deliberate total, not a mistake.
+    expect(f?.locations.some(l => l.includes("Calc!B6"))).toBe(false);
+    // C6 is =A6*3 under a column of =A+1 - the classic wrong-cell copy, still flagged.
+    expect(f?.locations).toContain("Calc!C6");
+  });
   it("does not flag a consistent column that uses a function name (LOG10)", () => {
     expect(inconsistentFormulas(ctx("functions.xlsx"))).toBeNull();
   });

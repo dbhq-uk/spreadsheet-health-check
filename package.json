@@ -4,9 +4,38 @@
   "description": "Free, client-side spreadsheet risk scanner. Scores a workbook for business risk - key-person dependency, hidden fragility, live errors, scale limits. No upload.",
   "license": "MIT",
   "type": "module",
+  "keywords": [
+    "excel",
+    "xlsx",
+    "spreadsheet",
+    "risk",
+    "audit",
+    "static-analysis",
+    "client-side"
+  ],
+  "homepage": "https://dbhq.uk/spreadsheet-health-check/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dbhq-uk/spreadsheet-health-check.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dbhq-uk/spreadsheet-health-check/issues"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/spreadsheet-health-check.mjs"
+    },
+    "./worker": "./dist/spreadsheet-health-check.worker.js",
+    "./package.json": "./package.json"
+  },
   "main": "./dist/spreadsheet-health-check.mjs",
   "module": "./dist/spreadsheet-health-check.mjs",
   "types": "./dist/index.d.ts",
+  "sideEffects": [
+    "./dist/spreadsheet-health-check.worker.js",
+    "./browser/worker.ts"
+  ],
   "files": [
     "dist",
     "src",
@@ -17,6 +46,7 @@
   ],
   "scripts": {
     "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "test:watch": "vitest",
     "fixtures": "node --experimental-strip-types test/fixtures/generate.mts",
     "scores": "vitest run test/calibration.test.ts",
@@ -26,14 +56,12 @@
     "check:worker": "node scripts/check-worker-bundle.mjs",
     "example": "node --experimental-strip-types examples/generate-example.mts"
   },
-  "dependencies": {
-    "fflate": "0.8.3",
-    "xlsx": "0.18.5"
-  },
   "devDependencies": {
     "@types/node": "^26.1.1",
+    "fflate": "0.8.3",
     "tsup": "8.5.1",
     "typescript": "^5.6.0",
-    "vitest": "4.1.10"
+    "vitest": "4.1.10",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }
 }
