@@ -1,5 +1,6 @@
 import type { Finding, Band, Category, CategoryResult, Severity } from "./types";
 
+// high is 26, not 24: a single high-severity finding must clear the Moderate threshold (25).
 const SEVERITY_PENALTY: Record<Severity, number> = { info: 2, low: 6, medium: 14, high: 26 };
 const PER_CHECK_CAP = 30;
 const CATEGORY_LABEL: Record<Category, string> = {
