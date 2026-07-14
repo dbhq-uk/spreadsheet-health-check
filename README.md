@@ -89,11 +89,33 @@ dbhq.uk serves this exact bundle, byte-identical to a tagged release, with
 Sigstore provenance so "the deployed bytes are the audited source" is
 independently checkable rather than asserted.
 
-The release workflow (Sigstore attestation, published hash, `gh
-attestation verify` / `sha256sum` steps) ships with a later piece of this
-project. Once that release CI lands, this section will be filled in with the
-exact commands. In the meantime, the source in this repo is the thing to
-read.
+Every tagged release is built by CI, hashed, and signed with a Sigstore
+build-provenance attestation (keyless, recorded in the public Rekor
+transparency log). To confirm the bundle dbhq.uk serves is the one built from
+this source:
+
+```bash
+# 1. Download the released bundle (or save the one dbhq.uk serves)
+gh release download v0.1.0 --repo dbhq-uk/spreadsheet-health-check \
+  -p spreadsheet-health-check.global.js
+
+# 2. Confirm its hash matches the one published in the release
+sha256sum spreadsheet-health-check.global.js
+#   c52ee26edb32f819867893781ea55643ca59a8971d2737f39816187bb17bf4b5
+
+# 3. Verify the Sigstore provenance - proves these bytes were built by this
+#    repo's release workflow, no human key involved
+gh attestation verify spreadsheet-health-check.global.js \
+  --repo dbhq-uk/spreadsheet-health-check
+```
+
+The bundle served at `https://dbhq.uk/tools/spreadsheet-health-check/` carries
+the same SHA-256, so you can hash what the site serves and compare. This is
+verifiable by anyone who checks; it is not auto-enforced in every visitor's
+browser (no browser mechanism proves a first-party script against an external
+attestation). Combined with the runtime check - open devtools and watch the
+network tab; the analysis makes zero requests - that is a stronger integrity
+story than a bare "we don't upload your file" claim.
 
 ## Licence
 
