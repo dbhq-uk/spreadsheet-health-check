@@ -15,6 +15,7 @@ describe("relativeTemplate", () => {
     expect(relativeTemplate('IF(A2>0,"Q1",0)', "B2")).toBe(relativeTemplate('IF(A3>0,"Q1",0)', "B3"));
   });
   it("keeps a sheet-qualified relative ref consistent across rows", () => {
-    expect(relativeTemplate("Data!A2*2", "B2")).toBe(relativeTemplate("Data!A3*2", "B3"));
+    // sheet name AB1 itself looks like a cell ref - the old regex broke on exactly this
+    expect(relativeTemplate("AB1!A2*2", "B2")).toBe(relativeTemplate("AB1!A3*2", "B3"));
   });
 });
