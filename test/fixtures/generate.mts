@@ -77,6 +77,23 @@ function setProps(wb: XLSX.WorkBook, author: string, lastMod: string | null) {
   XLSX.writeFile(wb, out("inconsistent.xlsx"), { bookType: "xlsx" });
 }
 
+// functions.xlsx - a consistent column of formulas using a function name (LOG10)
+// regression fixture for the r1c1 tokeniser: must not be flagged as inconsistent
+{
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([
+    ["n", "log"],
+    [1, { t: "n", f: "LOG10(A2)*2" }],
+    [2, { t: "n", f: "LOG10(A3)*2" }],
+    [3, { t: "n", f: "LOG10(A4)*2" }],
+    [4, { t: "n", f: "LOG10(A5)*2" }],
+    [5, { t: "n", f: "LOG10(A6)*2" }],
+  ]);
+  XLSX.utils.book_append_sheet(wb, ws, "Calc");
+  setProps(wb, "Alice", "Bob");
+  XLSX.writeFile(wb, out("functions.xlsx"), { bookType: "xlsx" });
+}
+
 // circular.xlsx - iterative calc enabled + A1<->B1 cycle
 {
   const wb = XLSX.utils.book_new();

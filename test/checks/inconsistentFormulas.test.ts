@@ -15,4 +15,7 @@ describe("inconsistentFormulas", () => {
   it("does not fire when all formulas are consistent", () => {
     expect(inconsistentFormulas(ctx("clean.xlsx"))).toBeNull();
   });
+  it("does not flag a consistent column that uses a function name (LOG10)", () => {
+    expect(inconsistentFormulas(ctx("functions.xlsx"))).toBeNull();
+  });
 });
