@@ -1,0 +1,32 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write        # create the release
+  id-token: write        # keyless Sigstore signing
+  attestations: write    # build provenance
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: "npm" }
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Hash the browser bundle
+        run: |
+          cd dist
+          sha256sum spreadsheet-health-check.global.js | tee ../SHA256SUMS
+      - uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: dist/spreadsheet-health-check.global.js
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/spreadsheet-health-check.global.js
+            dist/spreadsheet-health-check.mjs
+            SHA256SUMS
