@@ -84,6 +84,23 @@ function patchSheetXml(file: string, sheet: number, insert: string) {
   XLSX.writeFile(wb, out("inconsistent.xlsx"), { bookType: "xlsx" });
 }
 
+// totals-row.xlsx - column B ends in a legitimate SUM foot (must not flag);
+// column C ends in a genuine one-off outlier (must still flag)
+{
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([
+    ["n", "double", "plus one"],
+    [1, { t: "n", f: "A2*2" }, { t: "n", f: "A2+1" }],
+    [2, { t: "n", f: "A3*2" }, { t: "n", f: "A3+1" }],
+    [3, { t: "n", f: "A4*2" }, { t: "n", f: "A4+1" }],
+    [4, { t: "n", f: "A5*2" }, { t: "n", f: "A5+1" }],
+    [5, { t: "n", f: "SUM(B2:B5)" }, { t: "n", f: "A6*3" }],
+  ]);
+  XLSX.utils.book_append_sheet(wb, ws, "Calc");
+  setProps(wb, "Alice", "Bob");
+  XLSX.writeFile(wb, out("totals-row.xlsx"), { bookType: "xlsx" });
+}
+
 // functions.xlsx - a consistent column of formulas using a function name (LOG10)
 // regression fixture for the r1c1 tokeniser: must not be flagged as inconsistent
 {

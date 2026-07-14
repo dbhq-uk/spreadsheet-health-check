@@ -1,8 +1,15 @@
 import * as XLSX from "xlsx";
 import type { Check, ParsedContext } from "../types";
 import { relativeTemplate } from "../r1c1";
+import { functionsUsed } from "../formula";
 
-interface Run { sheet: string; cells: { addr: string; tpl: string }[]; }
+interface Run { sheet: string; cells: { addr: string; tpl: string; f: string }[]; }
+
+// A totals row is contiguous with the column it sums, so it always lands at the foot of a
+// run - but it is a deliberate change of pattern, not the wrong-cell copy this check hunts.
+const AGGREGATES = /^(SUM|SUMIF|SUMIFS|AVERAGE|AVERAGEIF|AVERAGEIFS|COUNT|COUNTA|COUNTIF|COUNTIFS|MIN|MAX|MEDIAN|SUBTOTAL|AGGREGATE)$/;
+const isAggregateFoot = (run: Run, index: number) =>
+  index === run.cells.length - 1 && functionsUsed(run.cells[index].f).some(fn => AGGREGATES.test(fn));
 
 function columnRuns(ctx: ParsedContext): Run[] {
   const runs: Run[] = [];
@@ -15,7 +22,7 @@ function columnRuns(ctx: ParsedContext): Run[] {
       for (let r = range.s.r; r <= range.e.r; r++) {
         const addr = XLSX.utils.encode_cell({ r, c });
         const cell = ws[addr] as XLSX.CellObject | undefined;
-        if (cell?.f) cur.push({ addr, tpl: relativeTemplate(cell.f, addr) });
+        if (cell?.f) cur.push({ addr, tpl: relativeTemplate(cell.f, addr), f: cell.f });
         else { if (cur.length >= 3) runs.push({ sheet, cells: cur }); cur = []; }
       }
       if (cur.length >= 3) runs.push({ sheet, cells: cur });
@@ -33,9 +40,9 @@ export const inconsistentFormulas: Check = (ctx) => {
     const [majTpl, majN] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
     // only flag if there is a clear majority (>60%) and few outliers
     if (majN / run.cells.length < 0.6) continue;
-    for (const { addr, tpl } of run.cells) {
-      if (tpl !== majTpl) outliers.push(`${run.sheet}!${addr}`);
-    }
+    run.cells.forEach(({ addr, tpl }, i) => {
+      if (tpl !== majTpl && !isAggregateFoot(run, i)) outliers.push(`${run.sheet}!${addr}`);
+    });
   }
   if (outliers.length === 0) return null;
   return {
