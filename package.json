@@ -7,21 +7,28 @@
   "main": "./dist/spreadsheet-health-check.mjs",
   "module": "./dist/spreadsheet-health-check.mjs",
   "types": "./dist/index.d.ts",
-  "files": ["dist", "src", "LICENSE", "README.md"],
+  "files": [
+    "dist",
+    "src",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
     "fixtures": "node --experimental-strip-types test/fixtures/generate.mts",
     "build": "tsup",
-    "demo": "node --experimental-strip-types demo/cli.mts"
+    "demo": "node --experimental-strip-types demo/cli.mts",
+    "check:iife": "node scripts/check-iife-bundle.mjs"
   },
   "dependencies": {
-    "xlsx": "0.18.5",
-    "fflate": "0.8.3"
+    "fflate": "0.8.3",
+    "xlsx": "0.18.5"
   },
   "devDependencies": {
-    "typescript": "^5.6.0",
+    "@types/node": "^26.1.1",
     "tsup": "8.5.1",
+    "typescript": "^5.6.0",
     "vitest": "4.1.10"
   }
 }
