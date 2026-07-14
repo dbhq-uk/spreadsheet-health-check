@@ -16,17 +16,25 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - name: Hash the browser bundle
+      # The bundles are what ships, so check the built artefacts, not just the source.
+      - run: npm run check:worker
+      - run: npm run check:iife
+      - name: Hash the published artefacts
         run: |
           cd dist
-          sha256sum spreadsheet-health-check.global.js | tee ../SHA256SUMS
+          sha256sum spreadsheet-health-check.worker.js spreadsheet-health-check.global.js | tee ../SHA256SUMS
+      # The worker bundle is the one the website loads, so it is the one that must be attested.
       - uses: actions/attest-build-provenance@v1
         with:
-          subject-path: dist/spreadsheet-health-check.global.js
+          subject-path: |
+            dist/spreadsheet-health-check.worker.js
+            dist/spreadsheet-health-check.global.js
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           files: |
+            dist/spreadsheet-health-check.worker.js
             dist/spreadsheet-health-check.global.js
             dist/spreadsheet-health-check.mjs
+            examples/example-workbook.xlsx
             SHA256SUMS

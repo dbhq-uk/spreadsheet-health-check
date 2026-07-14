@@ -10,6 +10,7 @@ export const hiddenSheets: Check = (ctx) => {
     severity: veryHidden ? "high" : "medium",
     title: hidden.length === 1 ? "A sheet is hidden from view" : `${hidden.length} sheets are hidden from view`,
     soWhat: "Hidden sheets often hold the real logic or data - out of sight, so no one reviews them and errors go unnoticed.",
+    action: "Unhide every sheet and look at what is in there. Anything still needed belongs in plain sight; anything that is not should be deleted rather than hidden.",
     locations: hidden.map(s => s.name),
     count: hidden.length,
   };

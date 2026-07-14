@@ -9,6 +9,7 @@ export const circularRefs: Check = (ctx) => {
     severity: "medium",
     title: "The workbook relies on circular references",
     soWhat: "Iterative calculation has been switched on to stop a formula loop from erroring - a fragile setup where a small change can silently shift every result.",
+    action: "Find the loop and break it. Iterative calculation hides the problem rather than solving it, and the answers it settles on depend on where it started.",
     locations: [],
     count: 1,
   };

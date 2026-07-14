@@ -22,6 +22,7 @@ export function analyse(bytes: Uint8Array): HealthReport {
       author: ctx.props.author,
       lastModifiedBy: ctx.props.lastModifiedBy,
       fileSizeBytes: ctx.fileSizeBytes,
+      formulaCount: ctx.formulaCells.length,
     },
   };
 }

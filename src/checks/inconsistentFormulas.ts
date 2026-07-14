@@ -44,6 +44,7 @@ export const inconsistentFormulas: Check = (ctx) => {
     severity: "high",
     title: outliers.length === 1 ? "A formula breaks the pattern of the cells around it" : `${outliers.length} formulas break the pattern of the cells around them`,
     soWhat: "When one cell in a column is calculated differently from its neighbours, it is usually a mistake - and the classic source of a wrong total no one spots.",
+    action: "Check each flagged cell against its neighbours, then copy the correct formula across the whole column so the pattern holds.",
     locations: outliers.slice(0, 20),
     count: outliers.length,
   };

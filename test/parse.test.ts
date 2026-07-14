@@ -23,4 +23,22 @@ describe("parseWorkbook", () => {
     expect(parseWorkbook(bytes("legacy.xls")).fileFormat).toBe("xls");
     expect(parseWorkbook(bytes("macros.xlsm")).fileFormat).toBe("xlsm");
   });
+
+  // A file that is not a spreadsheet must be refused, not described. SheetJS is permissive
+  // enough to hand back an empty workbook for arbitrary bytes, and the old format sniff then
+  // read "no PK header" as "legacy .xls" - so a renamed JPEG scored a confident Moderate,
+  // "near the limits of what a spreadsheet can hold". A report about a file we never parsed is
+  // worse than no report: it is the finding a sceptical owner uses to dismiss the whole tool.
+  it("refuses bytes that are not a spreadsheet at all", () => {
+    expect(() => parseWorkbook(new Uint8Array([1, 2, 3, 4]))).toThrow(/not a spreadsheet/i);
+    expect(() => parseWorkbook(new Uint8Array())).toThrow(/not a spreadsheet/i);
+    // a JPEG, renamed to .xls by a hopeful user
+    expect(() => parseWorkbook(new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]))).toThrow(/not a spreadsheet/i);
+  });
+
+  it("refuses a zip that is not a workbook", () => {
+    // a .zip renamed .xlsx: unzips cleanly, but there is no workbook inside it
+    const notAWorkbook = new Uint8Array([0x50, 0x4b, 0x03, 0x04, ...new Array(26).fill(0)]);
+    expect(() => parseWorkbook(notAWorkbook)).toThrow(/not a spreadsheet/i);
+  });
 });

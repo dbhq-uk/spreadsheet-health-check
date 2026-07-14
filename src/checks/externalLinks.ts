@@ -18,6 +18,7 @@ export const externalLinks: Check = (ctx) => {
     severity: "medium",
     title: parts.length === 1 ? "The workbook depends on another file" : `The workbook depends on ${parts.length} other files`,
     soWhat: "It secretly pulls numbers from files that can be moved, renamed or deleted by someone who has no idea this workbook needs them.",
+    action: "Either bring the data this workbook needs into it, or move both files somewhere their paths are stable and owned - a link to someone else's desktop is a matter of time.",
     locations: (targets.length ? targets : parts).slice(0, 20),
     count: parts.length,
   };
