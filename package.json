@@ -1,0 +1,27 @@
+{
+  "name": "@dbhq/spreadsheet-health-check",
+  "version": "0.0.0",
+  "description": "Free, client-side spreadsheet risk scanner. Scores a workbook for business risk - key-person dependency, hidden fragility, live errors, scale limits. No upload.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/spreadsheet-health-check.mjs",
+  "module": "./dist/spreadsheet-health-check.mjs",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "src", "LICENSE", "README.md"],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "fixtures": "node --experimental-strip-types test/fixtures/generate.mts",
+    "build": "tsup",
+    "demo": "node --experimental-strip-types demo/cli.mts"
+  },
+  "dependencies": {
+    "xlsx": "0.18.5",
+    "fflate": "0.8.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "tsup": "8.5.1",
+    "vitest": "4.1.10"
+  }
+}
