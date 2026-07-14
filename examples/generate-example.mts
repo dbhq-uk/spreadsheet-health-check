@@ -9,7 +9,12 @@
 //
 //   npm run example
 import * as XLSX from "xlsx";
+import * as fs from "node:fs";
 import { zipSync, unzipSync, strToU8 } from "fflate";
+
+// SheetJS's ESM build does not bind fs itself, so XLSX.writeFile throws until it is handed
+// one. Only the generators need this; the engine in src/ only ever reads a workbook.
+XLSX.set_fs(fs);
 import { writeFileSync, readFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -94,6 +99,19 @@ wb.Workbook = {
   })),
 } as any;
 wb.Props = { Author: "Sam Whitfield", LastAuthor: "Sam Whitfield" } as XLSX.FullProperties;
+
+// Excel always caches a formula's last result, and SheetJS marks a formula cell that has no
+// value as t="e" - an error cell. Without this the example workbook would open as a sea of
+// #ERRORs and the error-values finding would be meaningless. The two cells that are meant to
+// be errors carry a v of their own and no formula, so they are untouched.
+for (const name of wb.SheetNames) {
+  const ws = wb.Sheets[name];
+  for (const addr of Object.keys(ws)) {
+    if (addr[0] === "!") continue;
+    const cell = ws[addr] as XLSX.CellObject;
+    if (cell.f && cell.v === undefined) { cell.t = "n"; cell.v = 0; }
+  }
+}
 
 XLSX.writeFile(wb, file, { bookType: "xlsx" });
 

@@ -1,9 +1,15 @@
 // test/fixtures/generate.mts
 import * as XLSX from "xlsx";
+import * as fs from "node:fs";
 import { zipSync, unzipSync, strToU8 } from "fflate";
 import { writeFileSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+
+// SheetJS's ESM build does not bind fs itself - it cannot assume it is running somewhere that
+// has one - so XLSX.writeFile throws "cannot save file" until fs is handed to it. Only the
+// generators need this: the engine in src/ never writes a workbook, it only reads one.
+XLSX.set_fs(fs);
 
 const here = dirname(fileURLToPath(import.meta.url));
 const out = (name: string) => join(here, name);
@@ -13,6 +19,34 @@ const out = (name: string) => join(here, name);
 // reproducible, so regenerating is a no-op in git unless a fixture's content actually changed.
 const MTIME = new Date("2026-01-01T00:00:00Z");
 const rezip = (files: Record<string, Uint8Array>) => zipSync(files, { mtime: MTIME });
+
+/**
+ * Give every formula cell a cached result before writing.
+ *
+ * Excel always stores a formula's last computed value alongside the formula itself, and
+ * SheetJS's writer marks a formula cell that has no value as t="e" - an error cell. So a
+ * fixture declaring { t: "n", f: "B2*C2" } and nothing else round-trips into a workbook where
+ * every formula is an #ERROR, and errorValues then - quite correctly - reports it. The fixtures
+ * are about formula *shape*, not arithmetic, so a stub result is enough; what matters is that
+ * they look like a workbook Excel could have saved. Cells that are deliberately errors carry a
+ * v of their own and no f, so they are left alone.
+ */
+function cacheFormulaResults(wb: XLSX.WorkBook) {
+  for (const name of wb.SheetNames) {
+    const ws = wb.Sheets[name];
+    if (!ws) continue;
+    for (const addr of Object.keys(ws)) {
+      if (addr[0] === "!") continue;
+      const cell = ws[addr] as XLSX.CellObject;
+      if (cell.f && cell.v === undefined) { cell.t = "n"; cell.v = 0; }
+    }
+  }
+}
+
+function writeWorkbook(wb: XLSX.WorkBook, name: string, bookType: XLSX.BookType = "xlsx") {
+  cacheFormulaResults(wb);
+  XLSX.writeFile(wb, out(name), { bookType });
+}
 
 function setProps(wb: XLSX.WorkBook, author: string, lastMod: string | null) {
   wb.Props = { ...(wb.Props || {}), Author: author } as XLSX.FullProperties;
@@ -39,7 +73,7 @@ function patchSheetXml(file: string, sheet: number, insert: string) {
   ]);
   XLSX.utils.book_append_sheet(wb, ws, "Sales");
   setProps(wb, "Alice", "Bob");
-  XLSX.writeFile(wb, out("clean.xlsx"), { bookType: "xlsx" });
+  writeWorkbook(wb, "clean.xlsx");
 }
 
 // errors.xlsx - cells carrying error values
@@ -54,7 +88,7 @@ function patchSheetXml(file: string, sheet: number, insert: string) {
   };
   XLSX.utils.book_append_sheet(wb, ws, "Calc");
   setProps(wb, "Alice", "Bob");
-  XLSX.writeFile(wb, out("errors.xlsx"), { bookType: "xlsx" });
+  writeWorkbook(wb, "errors.xlsx");
 }
 
 // hidden.xlsx - one visible, one hidden, one veryHidden
@@ -65,7 +99,7 @@ function patchSheetXml(file: string, sheet: number, insert: string) {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["secret"]]), "Working");
   wb.Workbook = { Sheets: [{ Hidden: 0 }, { Hidden: 1 }, { Hidden: 2 }] } as any;
   setProps(wb, "Alice", "Bob");
-  XLSX.writeFile(wb, out("hidden.xlsx"), { bookType: "xlsx" });
+  writeWorkbook(wb, "hidden.xlsx");
 }
 
 // inconsistent.xlsx - a column of formulas with one outlier
@@ -81,7 +115,7 @@ function patchSheetXml(file: string, sheet: number, insert: string) {
   ]);
   XLSX.utils.book_append_sheet(wb, ws, "Calc");
   setProps(wb, "Alice", "Bob");
-  XLSX.writeFile(wb, out("inconsistent.xlsx"), { bookType: "xlsx" });
+  writeWorkbook(wb, "inconsistent.xlsx");
 }
 
 // totals-row.xlsx - column B ends in a legitimate SUM foot (must not flag);
@@ -98,7 +132,7 @@ function patchSheetXml(file: string, sheet: number, insert: string) {
   ]);
   XLSX.utils.book_append_sheet(wb, ws, "Calc");
   setProps(wb, "Alice", "Bob");
-  XLSX.writeFile(wb, out("totals-row.xlsx"), { bookType: "xlsx" });
+  writeWorkbook(wb, "totals-row.xlsx");
 }
 
 // functions.xlsx - a consistent column of formulas using a function name (LOG10)
@@ -115,7 +149,7 @@ function patchSheetXml(file: string, sheet: number, insert: string) {
   ]);
   XLSX.utils.book_append_sheet(wb, ws, "Calc");
   setProps(wb, "Alice", "Bob");
-  XLSX.writeFile(wb, out("functions.xlsx"), { bookType: "xlsx" });
+  writeWorkbook(wb, "functions.xlsx");
 }
 
 // circular.xlsx - iterative calc enabled + A1<->B1 cycle
@@ -124,7 +158,7 @@ function patchSheetXml(file: string, sheet: number, insert: string) {
   const ws = XLSX.utils.aoa_to_sheet([[{ t: "n", f: "B1+1" }, { t: "n", f: "A1+1" }]]);
   XLSX.utils.book_append_sheet(wb, ws, "Loop");
   setProps(wb, "Alice", "Bob");
-  XLSX.writeFile(wb, out("circular.xlsx"), { bookType: "xlsx" });
+  writeWorkbook(wb, "circular.xlsx");
   // inject <calcPr iterate="1"/> into xl/workbook.xml
   const buf = readFileSync(out("circular.xlsx"));
   const files = unzipSync(new Uint8Array(buf));
@@ -143,7 +177,7 @@ function patchSheetXml(file: string, sheet: number, insert: string) {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["ref", { t: "n", v: 1 }]]), "S");
   setProps(wb, "Alice", "Bob");
-  XLSX.writeFile(wb, out("external-links.xlsx"), { bookType: "xlsx" });
+  writeWorkbook(wb, "external-links.xlsx");
   const files = unzipSync(new Uint8Array(readFileSync(out("external-links.xlsx"))));
   files["xl/externalLinks/externalLink1.xml"] = strToU8(
     '<?xml version="1.0"?><externalLink xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><externalBook/></externalLink>'
@@ -159,7 +193,7 @@ function patchSheetXml(file: string, sheet: number, insert: string) {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["macro book"]]), "S");
   setProps(wb, "Alice", "Bob");
-  XLSX.writeFile(wb, out("macros.xlsm"), { bookType: "xlsm" });
+  writeWorkbook(wb, "macros.xlsm", "xlsm");
   const files = unzipSync(new Uint8Array(readFileSync(out("macros.xlsm"))));
   files["xl/vbaProject.bin"] = new Uint8Array([0xcf, 0xd0, 0xe0, 0x11, 0x00, 0x00]);
   writeFileSync(out("macros.xlsm"), rezip(files));
@@ -170,7 +204,7 @@ function patchSheetXml(file: string, sheet: number, insert: string) {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["old", 1]]), "S");
   setProps(wb, "Alice", "Bob");
-  XLSX.writeFile(wb, out("legacy.xls"), { bookType: "xls" });
+  writeWorkbook(wb, "legacy.xls", "xls");
 }
 
 // key-person.xlsx - the rebuilt key-person signal: untraceable references, formulas nobody
@@ -201,7 +235,7 @@ function patchSheetXml(file: string, sheet: number, insert: string) {
   const ws = XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, ws, "Model");
   setProps(wb, "Alice", "Bob");
-  XLSX.writeFile(wb, out("key-person.xlsx"), { bookType: "xlsx" });
+  writeWorkbook(wb, "key-person.xlsx");
   patchSheetXml("key-person.xlsx", 1, '<sheetProtection sheet="1" objects="1" scenarios="1"/>');
 }
 
@@ -214,7 +248,7 @@ function patchSheetXml(file: string, sheet: number, insert: string) {
     [3, 10, { t: "n", f: "A3*B3" }],
   ]), "Sales");
   setProps(wb, "Alice", "Bob");
-  XLSX.writeFile(wb, out("manual-calc.xlsx"), { bookType: "xlsx" });
+  writeWorkbook(wb, "manual-calc.xlsx");
   const files = unzipSync(new Uint8Array(readFileSync(out("manual-calc.xlsx"))));
   let wbxml = new TextDecoder().decode(files["xl/workbook.xml"]);
   wbxml = wbxml.includes("<calcPr")
@@ -235,7 +269,7 @@ function patchSheetXml(file: string, sheet: number, insert: string) {
   }
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), "Invoice");
   setProps(wb, "Alice", "Bob");
-  XLSX.writeFile(wb, out("hardcoded.xlsx"), { bookType: "xlsx" });
+  writeWorkbook(wb, "hardcoded.xlsx");
 }
 
 // duplicate-sheets.xlsx - the same sheet copied per month
@@ -250,7 +284,7 @@ function patchSheetXml(file: string, sheet: number, insert: string) {
     ]), month);
   }
   setProps(wb, "Alice", "Bob");
-  XLSX.writeFile(wb, out("duplicate-sheets.xlsx"), { bookType: "xlsx" });
+  writeWorkbook(wb, "duplicate-sheets.xlsx");
 }
 
 // merged.xlsx - merged cells down inside the data region, not just a title banner
@@ -270,7 +304,7 @@ function patchSheetXml(file: string, sheet: number, insert: string) {
   ];
   XLSX.utils.book_append_sheet(wb, ws, "Sales");
   setProps(wb, "Alice", "Bob");
-  XLSX.writeFile(wb, out("merged.xlsx"), { bookType: "xlsx" });
+  writeWorkbook(wb, "merged.xlsx");
 }
 
 // documented.xlsx - the negative control. A substantial workbook (40 formulas) that is well
@@ -293,7 +327,7 @@ function patchSheetXml(file: string, sheet: number, insert: string) {
     ["Owner: the sales desk. Reviewed monthly."],
   ]), "Notes");
   setProps(wb, "Alice", "Bob");
-  XLSX.writeFile(wb, out("documented.xlsx"), { bookType: "xlsx" });
+  writeWorkbook(wb, "documented.xlsx");
   patchSheetXml("documented.xlsx", 1,
     '<dataValidations count="1"><dataValidation type="whole" operator="greaterThan" sqref="B2:B41"><formula1>0</formula1></dataValidation></dataValidations>');
 }
