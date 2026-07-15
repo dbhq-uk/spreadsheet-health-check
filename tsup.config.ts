@@ -1,7 +1,7 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig([
-  // ESM build for npm/demo consumers.
+  // ESM engine build, for importing analyse() as a library from a release.
   {
     entry: { "spreadsheet-health-check": "src/index.ts" },
     format: ["esm"],

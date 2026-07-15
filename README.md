@@ -122,7 +122,9 @@ quietly re-scoring everyone's spreadsheet.
 
 `npm run build` produces:
 
-- `dist/spreadsheet-health-check.mjs` - ESM, for npm/bundler consumers.
+- `dist/spreadsheet-health-check.mjs` - ESM engine build, for importing
+  `analyse()` as a library (attached to every GitHub release; the demo and
+  tests run against `src/` directly).
 - `dist/spreadsheet-health-check.worker.js` - the self-contained Web Worker
   bundle. **This is the exact file the website loads**, pinned by SHA-256.
 - `dist/spreadsheet-health-check.global.js` - an IIFE that sets
